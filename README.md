@@ -1,64 +1,316 @@
-[![RealWorld Frontend](https://img.shields.io/badge/realworld-frontend-%23783578.svg)](http://realworld.io)
-[![Build Status](https://travis-ci.org/gothinkster/angular-realworld-example-app.svg?branch=master)](https://travis-ci.org/gothinkster/angular-realworld-example-app)
+![CloudBees Feature Management](https://1ko9923xosh2dsbjsxpwqp45-wpengine.netdna-ssl.com/wp-content/themes/rollout/images/rollout_white_logo1.png)
 
-# ![Angular Example App](logo.png)
+[![Integration status](https://app.rollout.io/badges/6735abb30672f7cecaff8e0a)](https://app.rollout.io/app/6735ab155b9f8165d28797cb/settings/info)
 
-> ### Angular codebase containing real world examples (CRUD, auth, advanced patterns, etc) that adheres to the [RealWorld](https://github.com/gothinkster/realworld-example-apps) spec and API.
+This repository is a YAML represnetation for Rollout configuration, it is connected (see badge for status) to Rollout service via [Rollout's github app](https://github.com/apps/rollout-io)
+Configuration as code allows the entire configuration of Rollout's state to be stored as source code. It integrates Rollout's UI with engineering existing environment. This approach brings a lot of benefits.
 
-### [Demo](https://angular.realworld.io)&nbsp;&nbsp;&nbsp;&nbsp;[RealWorld](https://github.com/gothinkster/realworld)
 
-This codebase was created to demonstrate a fully fledged application built with Angular that interacts with an actual backend server including CRUD operations, authentication, routing, pagination, and more. We've gone to great lengths to adhere to the [Angular Styleguide](https://angular.io/styleguide) & best practices.
+# What is Rollout
+Rollout is a multi-platform, infrastructure as code, software as a service feature management and remote configuration solution.
 
-Additionally, there is an Angular 1.5 version of this codebase that you can [fork](https://github.com/gothinkster/angularjs-realworld-example-app) and/or [learn how to recreate](https://thinkster.io/angularjs-es6-tutorial).
+# What Are Feature Flags
 
-# How it works
+Feature Flags is a powerfull technique based on remotetly and conditionaly opening/closing features threw the entire feature developement and delivery process.  As Martin Fowler writes on [Feature Toggles (aka Feature Flags)](https://martinfowler.com/articles/feature-toggles.html)
 
-We're currently working on some docs for the codebase (explaining where functionality is located, how it works, etc) but the codebase should be straightforward to follow as is. We've also released a [step-by-step tutorial w/ screencasts](https://thinkster.io/tutorials/building-real-world-angular-2-apps) that teaches you how to recreate the codebase from scratch.
+> Feature Toggles (often also refered to as Feature Flags) are a powerful technique, allowing teams to modify system behavior without changing code. They fall into various usage categories, and it's important to take that categorization into account when implementing and managing toggles. Toggles introduce complexity. We can keep that complexity in check by using smart toggle implementation practices and appropriate tools to manage our toggle configuration, but we should also aim to constrain the number of toggles in our system.
 
-# Getting started
+You can read more about the Advantages of having Rollout configuration stored and treated as code in [Rollout's support doc](https://support.rollout.io/docs/configuration-as-code)
 
-Make sure you have the [Angular CLI](https://github.com/angular/angular-cli#installation) installed globally. We use [Yarn](https://yarnpkg.com) to manage the dependencies, so we strongly recommend you to use it. you can install it from [Here](https://yarnpkg.com/en/docs/install), then run `yarn install` to resolve all dependencies (might take a minute).
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+# Repository, Directories and YAML structure
+## Branches are Environments
 
-### Building the project
+Every environment on Rollout dashboard is mapped to a branch in git. The same name that is used for the environment will be used for the branch name. The only exception being Production environment which is mapped to `master` branch
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `-prod` flag for a production build.
+## Directory structure
 
-## Functionality overview
+Rollout repository integration creates the following directory structure:
+```
+.
+├── experiments             # Experiments definitions
+│   └──  archived           # Archived experiments definitions
+├── target_groups           # Target groups definitions
+└── README.md
+```
 
-The example application is a social blogging site (i.e. a Medium.com clone) called "Conduit". It uses a custom API for all requests, including authentication. You can view a live demo over at https://angular.realworld.io
+- All experiments are located under the experiment folder
+- All archived experiments are located under the `experiments/archived` folder
 
-**General functionality:**
+## Experiment Examples
 
-- Authenticate users via JWT (login/signup pages + logout button on settings page)
-- CRU\* users (sign up & settings page - no deleting required)
-- CRUD Articles
-- CR\*D Comments on articles (no updating required)
-- GET and display paginated lists of articles
-- Favorite articles
-- Follow other users
+### False for all users
+```yaml
+flag: default.followingView
+type: experiment
+name: following view
+value: false
+```
+This YAML representation in Rollout's dashboard:
+![dashboard](https://files.readme.io/00b37e6-Screen_Shot_2018-12-03_at_11.47.56.png)
+### 50% split
+```yaml
+flag: default.followingView
+type: experiment
+name: following view
+value:
+  - option: true
+    percentage: 50
+```
+This YAML representation in Rollout's dashboard:
+![dashboard](https://files.readme.io/5af4d9e-Screen_Shot_2018-12-03_at_12.01.28.png)
+### Open feature for QA and Beta Users on version 3.0.1, otherwise close it
+```yaml
+flag: default.followingView
+type: experiment
+name: following view
+conditions:
+  - group:
+      name:
+        - QA
+        - Beta Users
+    version:
+      operator: semver-gte
+      semver: 3.0.1
+    value: true
+value: false
+```
+This YAML representation in Rollout's dashboard:
+![dashboard](https://files.readme.io/6884476-Screen_Shot_2018-12-03_at_12.04.13.png)
+### Open feature for all platform beside Android
+```yaml
+flag: default.followingView
+type: experiment
+name: following view
+platforms:
+  - name: Android
+    value: false
+value: true
+```
+Dashboard default platfrom configuration:
+![dashboard](https://files.readme.io/461c854-Screen_Shot_2018-12-04_at_10.19.59.png)
+Dashboard Android configuration:
+![dashboard](https://files.readme.io/1aafd04-Screen_Shot_2018-12-03_at_21.39.52.png)
+## Experiment YAML
 
-**The general page breakdown looks like this:**
+This section describes the yaml scheme for an experiment. It is a composite of 3 schemas:
 
-- Home page (URL: /#/ )
-  - List of tags
-  - List of articles pulled from either Feed, Global, or by Tag
-  - Pagination for list of articles
-- Sign in/Sign up pages (URL: /#/login, /#/register )
-  - Uses JWT (store the token in localStorage)
-  - Authentication can be easily switched to session/cookie based
-- Settings page (URL: /#/settings )
-- Editor page to create/edit articles (URL: /#/editor, /#/editor/article-slug-here )
-- Article page (URL: /#/article/article-slug-here )
-  - Delete article button (only shown to article's author)
-  - Render markdown from server client side
-  - Comments section at bottom of page
-  - Delete comment button (only shown to comment's author)
-- Profile page (URL: /#/profile/:username, /#/profile/:username/favorites )
-  - Show basic user info
-  - List of articles populated from author's created articles or author's favorited articles
 
-<br />
+-  [Root schema ](doc:configuration-as-code#section-root-schema)  - the base schema for experiment
+-  [Splited Value schema](doc:configuration-as-code#section-splitedvalue-schema)  - Represents a splited value -  a value that is distributed among different instances based on percentage
+-  [Scheduled Value schema](doc:configuration-as-code#section-scheduledvalue-schema)  - Represents a scheduled value -  a value that is based on the time that the flag was evaluated
+-  [Condition schema](doc:configuration-as-code#section-condition-schema)  - Specify how to target a specific audience/device
+-  [Platform schema](doc:configuration-as-code#section-platform-schema)  - Specify how to target a specific platform
 
-[![Brought to you by Thinkster](https://raw.githubusercontent.com/gothinkster/realworld/master/media/end.png)](https://thinkster.io)
+
+
+### Root Schema
+An Experiment controls the flag value in runtime:
+
+```yaml
+# Yaml api version
+# Optional: defaults to "1.0.0"
+version: Semver
+
+# Yaml Type (required)
+type: "experiment"
+
+# The flag being controlled by this experiment (required)
+flag: String
+
+# The available values that this flag can be
+# Optional=[false, true]
+availableValues: [String|Bool]
+
+# The name of the experiment
+# Optional: default flag name
+name: String
+
+# The Description of the experiment
+# Optional=""
+description: String
+
+# Indicates if the experiment is active
+# Optional=true
+enabled: Boolean
+
+# Expriment lables
+# Optional=[]
+labels: [String]|String
+
+# Stickiness property that controls percentage based tossing
+# Optional="rox.distict_id"
+stickinessProperty: String
+
+# Platfrom explicit targeting
+# Optional=[]
+platforms: [Platfrom]  # see Platfrom schema
+
+# Condition and values for default platfomr
+# Optional=[]
+conditions: [Condition] # see Condition schema
+
+# Value when no Condition is met
+# Optional
+#  false for boolean flags
+#  null for enum flags  (indicates default value)
+value: String|Boolean|[SplitedValue]|[ScheduledValue]|null
+```
+
+### SplitedValue Schema
+```yaml
+# Percentage, used for splitting traffic across different values
+# Optional=100
+percentage: Number
+
+# The Value to be delivered
+option: String|Boolean
+```
+### ScheduledValue Schema
+```yaml
+# The Date from which this value is relevant
+# Optional=undefined
+from: Date
+
+# Percentage, used for splitting traffic across different values
+# Optional=100
+percentage: Number
+```
+### Condition Schema
+
+The Condition is a pair of condition and value, an array of conditions can be viewed as an if-else statement by the order of conditions
+
+The schema contains three types of condition statements
+- Dependency - express flag dependencies, by indicating flag name and expected value
+- Groups - a list of target-groups and the operator that indicates the relationship between them (`or`|`and`|`not`)
+- Version -  comparing the version of
+[/block]
+The relationship between these items is `and`, meaning:
+       If the dependency is met `and` Groups matches `and` Version matches  `then` flage=value
+
+Here is the Condition schema
+```yaml
+# Condition this flag value with another flag value
+dependency:
+    # Flag Name
+    flag: String
+    # The expected Flag Value
+    value: String|Boolean
+
+# Condition flag value based on target group(s)
+group:
+    # The logical relationship between the groups
+    # Optional = or
+    operator: or|and|not
+
+    # Name of target groups
+    name: [String]|String
+
+# Condition flag value based release version
+version:
+    # The operator to compare version
+    operator: semver-gt|semver-gte|semver-eq|semver-ne|semver-lt|semver-lte
+
+    # The version to compare to
+    semver: Semver
+
+# Value when Condition is met
+value: String|Boolean|[SplitedValue]|[ScheduledValue]|null
+```
+### Platform Schema
+The platform object indicates a specific targeting for a specific platform
+
+```yaml
+# Name of the platform, as defined in the SDK running
+name: String
+
+# Override the flag name, when needed
+# Optional = experiment flag name
+flag: String
+
+# Condition and values for default platfomr
+# Optional=[]
+conditions: [Condition] # see Condition schema
+
+# Value when no Condition is met
+# Optional
+#  false for boolean flags
+#  null for enum flags  (indicates default value)
+value: String|Boolean|[SplitedValue]|[ScheduledValue]|null # see Value schema
+```
+
+
+## Target Group Examples
+### List of matching userid
+```yaml
+type: target-group
+name: QA
+conditions:
+  - operator: in-array
+    property: soundcloud_id
+    operand:
+      - 5c0588007cd291cca474454f
+      - 5c0588027cd291cca4744550
+      - 5c0588037cd291cca4744551
+      - 5c0588047cd291cca4744552
+      - 5c0588047cd291cca4744553
+```
+
+![dashboard](https://files.readme.io/7affbbe-Screen_Shot_2018-12-03_at_21.47.05.png)
+### Using number property for comparison
+
+```yaml
+type: target-group
+name: DJ
+conditions:
+  - operator: gte
+    property: playlist_count
+    operand: 100
+description: Users with a lot of playlists
+```
+
+On rollout Dashboard
+![dashboard](https://files.readme.io/dcb562f-Screen_Shot_2018-12-03_at_21.43.19.png)
+## Target Group YAML
+
+A Target group is a set of rules on top of custom properties that are defined in runtime, it is used in experiments conditions
+
+```yaml
+# Yaml api version
+# Optional: defaults to "1.0.0"
+version: Semver
+
+# Yaml Type (required)
+type: "target-group"
+
+#Target Group Name
+name: String
+
+# Target Group description
+# Optional = ""
+description: String
+
+# The logical relationship between conditions
+# Optional = and
+operator: or|and
+
+# Array of Conditions that have a logical AND relationship between them
+conditions:
+    # The Custom property to be conditioned (first operand)
+  - property: String
+
+    # The Operator of the confition
+    operator: is-undefined|is-true|is-false|eq|ne|gte|gt|lt|lte|regex|semver-gt|semver-eq|semver-gte|semver-gt|semver-lt|semver-lte
+
+    # The Second operand of the condition
+    # Optional - Based on operator  (is-undefined, is-true, is-false)
+    operand: String|Number|[String]
+```
+
+# See Also:
+- Using Roxy docker image for Microservices Automated Testing and Local development [here](https://support.rollout.io/docs/microservices-automated-testing-and-local-development)
+- Configuration as Code advantages [here](https://support.rollout.io/docs/configuration-as-code#section-advantages-of-configuration-as-code)
+- Integration walkthrough [here](https://support.rollout.io/docs/configuration-as-code#section-connecting-to-github-cloud)
+
+
+Please contact support@rollout.io for any issues questions or suggestions you might have
